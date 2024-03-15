@@ -11,15 +11,18 @@
 
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import { autoUpdater, AppUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { spawn, exec } from 'child_process';
 import fs from 'fs';
 const cfx = require("cfx-api");
-const REDM_SERVER_IP = '127.0.0.1'; // Örnek bir IP adresi
+const REDM_SERVER_IP = '194.107.126.204'; // Örnek bir IP adresi
 const REDM_SERVER_PORT = 30120;
+
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 class AppUpdater {
   constructor() {
@@ -28,6 +31,7 @@ class AppUpdater {
     autoUpdater.checkForUpdatesAndNotify();
   }
 }
+
 let redmExePath: string | null = null;
 let mainWindow: BrowserWindow | null = null;
 try {
@@ -129,6 +133,7 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
+
 const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
@@ -182,12 +187,42 @@ const createWindow = async () => {
     shell.openExternal(edata.url);
     return { action: 'deny' };
   });
-
-  // Remove this if your app does not use auto updates
-  // eslint-disable-next-line
   new AppUpdater();
 };
 
+
+autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
+  const dialogOpts = {
+    type: 'info',
+    buttons: ['Restart', 'Later'],
+    title: 'Application Update',
+    message: process.platform === 'win32' ? releaseNotes : releaseName,
+    detail:
+      'A new version has been downloaded. Restart the application to apply the updates.'
+  };
+  dialog.showMessageBox(dialogOpts).then((returnValue) => {
+    if (returnValue.response === 0) autoUpdater.quitAndInstall()
+  })
+})
+
+// autoUpdater.on("update-available", (info) => {
+//   curWindow.showMessage(`Update available. Current version ${app.getVersion()}`);
+//   let pth = autoUpdater.downloadUpdate();
+//   curWindow.showMessage(pth);
+// });
+
+// autoUpdater.on("update-not-available", (info) => {
+//   curWindow.showMessage(`No update available. Current version ${app.getVersion()}`);
+// });
+
+// /*Download Completion Message*/
+// autoUpdater.on("update-downloaded", (info) => {
+//   curWindow.showMessage(`Update downloaded. Current version ${app.getVersion()}`);
+// });
+
+// autoUpdater.on("error", (info) => {
+//   curWindow.showMessage(info);
+// });
 
 /**
  * Add event listeners...
